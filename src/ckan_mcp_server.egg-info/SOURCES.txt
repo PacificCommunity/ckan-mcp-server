@@ -1,0 +1,13 @@
+LICENSE
+README.md
+pyproject.toml
+setup.py
+src/ckan_mcp_server.egg-info/PKG-INFO
+src/ckan_mcp_server.egg-info/SOURCES.txt
+src/ckan_mcp_server.egg-info/dependency_links.txt
+src/ckan_mcp_server.egg-info/entry_points.txt
+src/ckan_mcp_server.egg-info/requires.txt
+src/ckan_mcp_server.egg-info/top_level.txt
+tests/test.py
+tests/test_download_pacificdata.py
+tests/test_resource_download.py

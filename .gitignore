@@ -23,5 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# bitte nicht...
 .env
+
+__pycache__
