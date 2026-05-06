@@ -1,6 +1,8 @@
 
 # CKAN MCP Server
 
+> Work inspired by ondics [ckan-mcp-server](https://github.com/ondics/ckan-mcp-server) but largely refactored to include more features and improvements.
+
 A Model Context Protocol (MCP) server for the CKAN API that enables browsing and managing CKAN data portals through MCP-compatible clients.
 
 ## What is this?
