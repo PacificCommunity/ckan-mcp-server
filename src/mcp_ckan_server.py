@@ -85,22 +85,61 @@ app = Server("ckan-mcp-server")
 
 @app.list_tools()
 async def handle_list_tools() -> List[types.Tool]:
-    """List available CKAN API tools"""
+    """List available CKAN API tools organized by capability"""
     return [
+        # === DATA DISCOVERY & SEARCH ===
+        types.Tool(
+            name="ckan_package_search",
+            description="Search datasets by keywords, themes, tags, or custom filters. Use this to find specific datasets by content, date range, organization, or metadata. Perfect for exploring public datasets or discovering resources within your CKAN portal.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "q": {
+                        "type": "string",
+                        "description": "Search query (e.g., 'climate', 'budget', '*:*' for all). Use keywords that match dataset titles or descriptions.",
+                        "default": "*:*"
+                    },
+                    "fq": {
+                        "type": "string",
+                        "description": "Advanced filter (e.g., 'organization:health-dept', 'res_format:CSV'). Filters results without affecting relevance ranking."
+                    },
+                    "sort": {
+                        "type": "string",
+                        "description": "Sort results (e.g., 'score desc' for relevance, 'metadata_modified desc' for newest first)",
+                        "default": "score desc"
+                    },
+                    "rows": {
+                        "type": "integer",
+                        "description": "Number of results per page (max 1000)",
+                        "default": 10
+                    },
+                    "start": {
+                        "type": "integer",
+                        "description": "Pagination offset (skip N results)",
+                        "default": 0
+                    },
+                    "include_private": {
+                        "type": "boolean",
+                        "description": "Include private/restricted datasets (requires appropriate permissions)",
+                        "default": False
+                    }
+                }
+            }
+        ),
         types.Tool(
             name="ckan_package_list",
-            description="Get list of all packages (datasets) in CKAN (unsorted)",
+            description="Browse all datasets in the portal by listing them with pagination. Use when you need a simple list of all available datasets without searching, or for data inventory/governance tasks.",
             inputSchema={
                 "type": "object",
                 "properties": {
                     "limit": {
                         "type": "integer",
-                        "description": "Maximum number of packages to return",
+                        "description": "Number of datasets to return per request",
                         "default": 100
                     },
                     "offset": {
                         "type": "integer",
-                        "description": "Offset for pagination",
+                        "description": "Skip N datasets (for pagination)",
                         "default": 0
                     }
                 }
@@ -108,184 +147,75 @@ async def handle_list_tools() -> List[types.Tool]:
         ),
         types.Tool(
             name="ckan_package_show",
-            description="Get details of a specific package/dataset (like dates)",
+            description="Retrieve complete details for a specific dataset including metadata, resources, creation/update dates, maintainer info, and linked data. Use when you need full information about a known dataset.",
             inputSchema={
                 "type": "object",
                 "properties": {
                     "id": {
                         "type": "string",
-                        "description": "Package ID or name"
+                        "description": "Dataset ID or name (e.g., 'covid-19-statistics' or '12345-67890')"
                     }
                 },
                 "required": ["id"]
-            }
-        ),
-        types.Tool(
-            name="ckan_package_search",
-            description="Search for packages using queries",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "q": {
-                        "type": "string",
-                        "description": "Search query",
-                        "default": "*:*"
-                    },
-                    "fq": {
-                        "type": "string",
-                        "description": "Filter query"
-                    },
-                    "sort": {
-                        "type": "string",
-                        "description": "Sort field and direction (e.g., 'score desc')"
-                    },
-                    "rows": {
-                        "type": "integer",
-                        "description": "Number of results to return",
-                        "default": 10
-                    },
-                    "start": {
-                        "type": "integer",
-                        "description": "Offset for pagination",
-                        "default": 0
-                    },
-                    "include_private": {
-                        "type": "boolean",
-                        "description": "Include private packages in search results",
-                        "default": False
-                    }
-                }
-            }
-        ),
-        types.Tool(
-            name="ckan_organization_list",
-            description="Get list of all organizations",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "all_fields": {
-                        "type": "boolean",
-                        "description": "Include all organization fields",
-                        "default": False
-                    }
-                }
-            }
-        ),
-        types.Tool(
-            name="ckan_organization_show",
-            description="Get details of a specific organization",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "description": "Organization ID or name"
-                    },
-                    "include_datasets": {
-                        "type": "boolean",
-                        "description": "Include organization's datasets",
-                        "default": False
-                    }
-                },
-                "required": ["id"]
-            }
-        ),
-        types.Tool(
-            name="ckan_group_list",
-            description="Get list of all groups",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "all_fields": {
-                        "type": "boolean",
-                        "description": "Include all group fields",
-                        "default": False
-                    }
-                }
-            }
-        ),
-        types.Tool(
-            name="ckan_tag_list",
-            description="Get list of all tags",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "vocabulary_id": {
-                        "type": "string",
-                        "description": "Vocabulary ID to filter tags"
-                    }
-                }
-            }
-        ),
-        types.Tool(
-            name="ckan_resource_show",
-            description="Get details of a specific resource",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "description": "Resource ID"
-                    }
-                },
-                "required": ["id"]
-            }
-        ),
-        types.Tool(
-            name="ckan_site_read",
-            description="Get site information and statistics",
-            inputSchema={
-                "type": "object",
-                "properties": {}
-            }
-        ),
-        types.Tool(
-            name="ckan_status_show",
-            description="Get CKAN site status and version information",
-            inputSchema={
-                "type": "object",
-                "properties": {}
             }
         ),
 
+        # === DATA ACCESS & RETRIEVAL ===
         types.Tool(
             name="ckan_datastore_search",
-            description="Search records in a dataset",
+            description="Query and retrieve actual data records from structured table resources. Use to access tabular data, apply filters, sort results, and analyze datasets without downloading.",
             inputSchema={
                 "type": "object",
                 "properties": {
                     "resource_id": {
                         "type": "string",
-                        "description": "ID of the resource to search"
-                    },
-                    "limit": {
-                        "type": "integer",
-                        "description": "Maximum number of results"
-                    },
-                    "offset": {
-                        "type": "integer",
-                        "description": "Number of results to skip"
+                        "description": "ID of the DataStore resource (typically a CSV or database-backed resource)"
                     },
                     "q": {
                         "type": "string",
-                        "description": "Query string in CKAN search syntax"
+                        "description": "Full-text search query to filter records by content"
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum records to return (default/max varies by CKAN config)",
+                        "default": 100
+                    },
+                    "offset": {
+                        "type": "integer",
+                        "description": "Skip N records (for pagination through large datasets)",
+                        "default": 0
                     },
                     "sort": {
                         "type": "string",
-                        "description": "Sort order e.g. 'field asc'"
+                        "description": "Sort results (e.g., 'date desc', 'name asc'). Specify column name and direction.",
+                        "default": "id asc"
                     },
                     "fields": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "Fields to return in results"
+                        "description": "Specific columns to retrieve (e.g., ['date', 'value', 'location']). Omit to get all fields."
                     }
                 },
                 "required": ["resource_id"]
             }
         ),
         types.Tool(
+            name="ckan_resource_show",
+            description="Get metadata for a specific file or data resource within a dataset (URL, format, size, creation date, etc.). Use before downloading to check resource properties.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Resource ID (UUID or identifier)"
+                    }
+                },
+                "required": ["id"]
+            }
+        ),
+        types.Tool(
             name="ckan_resource_download",
-            description="Download a single resource file from a CKAN instance to disk",
+            description="Download a dataset resource file to your local system. Supports CSV, JSON, Excel, and other formats with automatic format detection. Perfect for local analysis or archival.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -295,16 +225,96 @@ async def handle_list_tools() -> List[types.Tool]:
                     },
                     "output_folder": {
                         "type": "string",
-                        "description": "Local folder path where the resource file will be saved (must exist)"
+                        "description": "Local folder path where file will be saved (folder must already exist)"
                     },
                     "output_format": {
                         "type": "string",
                         "enum": ["raw", "json", "file"],
-                        "description": "Output format: 'raw' returns metadata, 'json' parses and returns JSON, 'file' downloads to disk",
+                        "description": "'raw' = metadata only, 'json' = parse and return as JSON, 'file' = save to disk",
                         "default": "file"
                     }
                 },
                 "required": ["resource_id", "output_folder"]
+            }
+        ),
+
+        # === ORGANIZATION & STRUCTURE ===
+        types.Tool(
+            name="ckan_organization_list",
+            description="List all data-publishing organizations in your portal. Use for organizational hierarchy discovery, reporting, or to identify which team manages specific datasets.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "all_fields": {
+                        "type": "boolean",
+                        "description": "Include all organization details (description, image, creation date, member count, etc.). Set true for comprehensive reporting.",
+                        "default": False
+                    }
+                }
+            }
+        ),
+        types.Tool(
+            name="ckan_organization_show",
+            description="Get full details for a specific organization including description, members, contact info, and optionally all their published datasets. Use for organizational reports or understanding data stewardship.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Organization ID or name (e.g., 'health-department')"
+                    },
+                    "include_datasets": {
+                        "type": "boolean",
+                        "description": "Include all datasets published by this organization (useful for org-specific analysis)",
+                        "default": False
+                    }
+                },
+                "required": ["id"]
+            }
+        ),
+        types.Tool(
+            name="ckan_group_list",
+            description="List all groups in the portal. Groups are like categories or themes for organizing datasets. Use to explore data taxonomy and themed collections.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "all_fields": {
+                        "type": "boolean",
+                        "description": "Include group descriptions, image, creation date. Set true for detailed catalog browsing.",
+                        "default": False
+                    }
+                }
+            }
+        ),
+        types.Tool(
+            name="ckan_tag_list",
+            description="List all metadata tags/keywords used in the portal. Use to understand available tags, discover tagging conventions, or filter searches by tag vocabulary.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "vocabulary_id": {
+                        "type": "string",
+                        "description": "Filter to a specific vocabulary/controlled list (optional). Use for custom tag systems like geographic locations or departments."
+                    }
+                }
+            }
+        ),
+
+        # === SYSTEM & STATUS ===
+        types.Tool(
+            name="ckan_site_read",
+            description="Get overall CKAN portal information including site title, description, organization count, dataset count, and other aggregate statistics. Use for portal health checks or metadata.",
+            inputSchema={
+                "type": "object",
+                "properties": {}
+            }
+        ),
+        types.Tool(
+            name="ckan_status_show",
+            description="Check CKAN system status and version. Useful for verifying API availability, version compatibility, and operational monitoring.",
+            inputSchema={
+                "type": "object",
+                "properties": {}
             }
         ),
         # @TODO Untested

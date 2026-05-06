@@ -132,30 +132,31 @@ docker-compose up
 
 ## Available Tools
 
-The MCP server provides the following tools:
+The MCP server provides comprehensive tools for data discovery, access, and management:
 
-### Packages/Datasets
-- `ckan_package_list`: List all packages
-- `ckan_package_show`: Show details of a specific package
-- `ckan_package_search`: Search for packages
+### 🔍 Data Discovery & Search
+- `ckan_package_search`: Search datasets by keywords, themes, tags, or custom filters
+- `ckan_package_list`: Browse all available datasets with pagination
 
-### Organizations
-- `ckan_organization_list`: List all organizations
-- `ckan_organization_show`: Show organization details
+### 📊 Data Access & Retrieval  
+- `ckan_package_show`: Retrieve complete metadata for a specific dataset
+- `ckan_datastore_search`: Query and filter actual data records from tables
+- `ckan_resource_show`: Get metadata about specific files/resources
+- `ckan_resource_download`: Download dataset files to your local system
 
-### DataStore
-- `ckan_datastore_search` Search DataStore Tables by Resource
+### 🏢 Organization & Structure
+- `ckan_organization_list`: List all data-publishing organizations
+- `ckan_organization_show`: Get organization details and their published datasets
+- `ckan_group_list`: Browse themed data groups and categories
+- `ckan_tag_list`: Explore available tags and controlled vocabularies
 
-### Groups and Tags
-- `ckan_group_list`: List all groups
-- `ckan_tag_list`: List all tags
+### 🔧 System & Status
+- `ckan_site_read`: Get portal-wide statistics and metadata
+- `ckan_status_show`: Check CKAN system status and version
 
-### Resources
-- `ckan_resource_show`: Show resource details
-
-### System
-- `ckan_site_read`: Site information
-- `ckan_status_show`: Status and version information
+**📚 Full Documentation**: 
+- [Tools by Use Case](./docs/TOOLS_BY_USE_CASE.md) — Find the right tool for your task
+- [Tool Capabilities](./docs/TOOL_CAPABILITIES.md) — Detailed capability matrix and workflow patterns
 
 ## Examples
 
@@ -230,6 +231,7 @@ Complete documentation: https://docs.ckan.org/en/latest/api/
 
 Mozilla Public License Version 2.0
 
-## Author
+## Copyright
 
-(C) 2025, Ondics GmbH, https://ondics.de
+- original work: (C) 2025, Ondics GmbH, https://ondics.de
+- Modifications and additions: (C) 2026, Pacific Community
