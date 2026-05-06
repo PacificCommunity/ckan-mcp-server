@@ -2,7 +2,57 @@
 
 Complete documentation for the CKAN MCP Server project.
 
-## Guides
+## 🚀 Getting Started
+
+**New to CKAN MCP Server?** Start here:
+
+1. **[Quick Start for CKAN Admins](./QUICK_START_ADMIN.md)** (5 minutes)
+   - Installation, configuration, first queries
+   - Best for: Hands-on learners who want to get running fast
+   
+2. **[Claude Desktop Setup Guide](./SETUP_CLAUDE_DESKTOP.md)** (Step-by-step)
+   - Configure Claude Desktop integration
+   - Troubleshooting for different platforms
+   - Security best practices
+   - Best for: Desktop users
+
+## 📚 Learning Guides
+
+3. **[Real-World Scenarios](./SCENARIO_EXAMPLES.md)** (10 practical examples)
+   - Find datasets, download data, create reports
+   - Organization audits, quality checks
+   - Before/after examples
+   - Best for: Understanding what's possible
+
+4. **[Tools by Use Case](./TOOLS_BY_USE_CASE.md)** (Task-driven reference)
+   - Organized by common tasks
+   - Includes workflow examples
+   - Audience-specific guidance
+   - Best for: "How do I...?" questions
+
+## 🔧 Reference Guides
+
+5. **[Tool Capabilities](./TOOL_CAPABILITIES.md)** (Complete reference)
+   - All tools with detailed specifications
+   - Capability matrix
+   - Workflow patterns
+   - Decision tree
+   - Best for: Understanding tool capabilities
+
+6. **[Quick Reference Card](./QUICK_REFERENCE.md)** (One-page cheat sheet)
+   - 10-second tool overview
+   - Copy-paste ready examples
+   - Parameter cheat sheet
+   - Best for: Quick lookups
+
+7. **[API Cookbook](./API_COOKBOOK.md)** (Code recipes)
+   - Copy-paste ready patterns
+   - Search, filtering, pagination
+   - Data processing examples
+   - Automation recipes
+   - Best for: Developers & automation
+
+## 📋 Feature Guides
 
 - **[RESOURCE_DOWNLOAD.md](./RESOURCE_DOWNLOAD.md)** - Resource download feature documentation
   - Output formats (raw, json, file)
