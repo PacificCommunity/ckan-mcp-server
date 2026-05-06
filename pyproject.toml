@@ -9,20 +9,33 @@ authors = [
 ]
 license-files = ["LICENSE"]
 dependencies = [
-    "aiohttp>=3.13.1",
-    "asyncio>=3.4.3",
+    "ckanapi>=4.7",
     "mcp>=1.19.0",
     "python-dotenv>=1.1.0",
     "uv>=0.8.9",
     "certifi>=2026.2.25",
+    "anyio>=4.0.0",
+    "click>=8.0.0",
+    "starlette>=0.40.0",
+    "uvicorn>=0.30.0",
 ]
 
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
-dependencies = [
-    "ckanapi",
-]
+
+[project.scripts]
+ckan-mcp-server = "ckan_mcp_server.main:cli"
+
+[project.entry-points."mcp"]
+ckan = "ckan_mcp_server.server:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+ckan_mcp_server = ["py.typed"]
+
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
@@ -31,7 +44,9 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/ondics/ckan-mcp-server"
 Issues = "https://github.com/ondics/ckan-mcp-server/issues"
-Disussions = "https://github.com/ondics/ckan-mcp-server/discussions"
+Discussions = "https://github.com/ondics/ckan-mcp-server/discussions"
+Documentation = "https://github.com/ondics/ckan-mcp-server/tree/main/docs"
 
 [tool.uv]
 package = true
+

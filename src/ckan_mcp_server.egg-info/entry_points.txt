@@ -1,0 +1,5 @@
+[console_scripts]
+ckan-mcp-server = ckan_mcp_server.main:cli
+
+[mcp]
+ckan = ckan_mcp_server.server:app

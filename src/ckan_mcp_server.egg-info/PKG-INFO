@@ -1,7 +1,31 @@
+Metadata-Version: 2.4
+Name: ckan-mcp-server
+Version: 1.1.2
+Summary: A Model Context Protocol (MCP) server for the CKAN API that enables browsing and managing CKAN data portals through MCP-compatible clients.
+Author: MCP CKAN Server
+Author-email: Ondics GmbH <info@ondics.de>
+Project-URL: Homepage, https://github.com/ondics/ckan-mcp-server
+Project-URL: Issues, https://github.com/ondics/ckan-mcp-server/issues
+Project-URL: Discussions, https://github.com/ondics/ckan-mcp-server/discussions
+Project-URL: Documentation, https://github.com/ondics/ckan-mcp-server/tree/main/docs
+Requires-Python: >=3.13
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: ckanapi>=4.7
+Requires-Dist: mcp>=1.19.0
+Requires-Dist: python-dotenv>=1.1.0
+Requires-Dist: uv>=0.8.9
+Requires-Dist: certifi>=2026.2.25
+Requires-Dist: anyio>=4.0.0
+Requires-Dist: click>=8.0.0
+Requires-Dist: starlette>=0.40.0
+Requires-Dist: uvicorn>=0.30.0
+Dynamic: author
+Dynamic: license-file
+Dynamic: requires-python
+
 
 # CKAN MCP Server
-
-> Work inspired by ondics [ckan-mcp-server](https://github.com/ondics/ckan-mcp-server) but largely refactored to include more features and improvements.
 
 A Model Context Protocol (MCP) server for the CKAN API that enables browsing and managing CKAN data portals through MCP-compatible clients.
 
