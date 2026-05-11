@@ -25,13 +25,14 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project.scripts]
-ckan-mcp-server = "ckan_mcp_server.main:cli"
+ckan-mcp-server = "mcp_ckan_server:main"
 
 [project.entry-points."mcp"]
-ckan = "ckan_mcp_server.server:app"
+ckan = "mcp_ckan_server:app"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.setuptools]
+package-dir = {"" = "src"}
+py-modules = ["mcp_ckan_server"]
 
 [tool.setuptools.package-data]
 ckan_mcp_server = ["py.typed"]
@@ -49,4 +50,3 @@ Documentation = "https://github.com/ondics/ckan-mcp-server/tree/main/docs"
 
 [tool.uv]
 package = true
-
