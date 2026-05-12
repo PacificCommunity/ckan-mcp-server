@@ -1,0 +1,8 @@
+services:
+  ckan-mcp-server-stdio:
+    image: ${CKAN_MCP_IMAGE:-registry.internal.example.com/ckan-mcp-server}:${CKAN_MCP_TAG:-latest}
+    pull_policy: always
+
+  ckan-mcp-server:
+    image: ${CKAN_MCP_IMAGE:-registry.internal.example.com/ckan-mcp-server}:${CKAN_MCP_TAG:-latest}
+    pull_policy: always
