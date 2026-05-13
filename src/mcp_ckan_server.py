@@ -724,6 +724,11 @@ async def start_server(host: str,port: int, transport: str,logpath:str,loglevel:
 
     global ckan_client
     ckan_client = CKANAPIClient(ckan_url, ckan_api_key,ckan_basic_auth_username,ckan_basic_auth_password)
+    logger.info(
+        "CKAN MCP Server is up and running (%s transport). Connected to %s",
+        transport,
+        ckan_url,
+    )
 
     # Start the CKAN client session
 

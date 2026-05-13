@@ -66,10 +66,14 @@ export CKAN_API_KEY=your-api-key
 python -m src.mcp_ckan_server
 
 # Using uv
-uv run python -m src.mcp_ckan_server
+uv run ckan-mcp-server --transport stdio
 
 # Docker
-docker compose up
+# Local development (builds from source)
+docker compose --profile stdio up --build
+
+# Production deployment from internal registry
+CKAN_MCP_IMAGE=registry.internal.example.com/ckan-mcp-server docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile stdio up --no-build
 ```
 
 ### Using with Claude Desktop
@@ -80,8 +84,7 @@ Add to `~/.config/claude/claude_desktop_config.json`:
 {
   "mcpServers": {
     "ckan": {
-      "command": "python",
-      "args": ["-m", "src.mcp_ckan_server"],
+      "command": "ckan-mcp-server",
       "env": {
         "CKAN_URL": "https://demo.ckan.org",
         "CKAN_API_KEY": "your-key"
