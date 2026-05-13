@@ -178,7 +178,7 @@ cp .env.sample .env
 
 ```bash
 # Run with docker-compose
-docker compose --profile sse up
+docker compose --profile http up
 
 # Or manually
 docker build -t ckan-mcp-server .

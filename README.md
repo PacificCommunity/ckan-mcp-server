@@ -68,6 +68,12 @@ python -m src.mcp_ckan_server
 # Using uv
 uv run ckan-mcp-server --transport stdio
 
+# HTTP transport
+uv run ckan-mcp-server --transport streamable-http
+
+# Endpoint
+# http://127.0.0.1:8000/mcp
+
 # Docker
 # Local development (builds from source)
 docker compose --profile stdio up --build
