@@ -18,6 +18,7 @@ import requests
 from ckanapi import RemoteCKAN
 from ckanapi.datapackage import create_resource
 from mcp.server.models import InitializationOptions
+from mcp.server.fastmcp import FastMCP
 import mcp.types as types
 from mcp.server import NotificationOptions, Server
 import mcp.server.stdio
@@ -79,6 +80,26 @@ class CKANAPIClient:
 
 # Global CKAN client
 ckan_client = None
+
+
+async def get_ckan_client() -> CKANAPIClient:
+    """Initialize the shared CKAN client from environment variables."""
+    global ckan_client
+    if ckan_client and ckan_client.client:
+        return ckan_client
+
+    ckan_url = os.getenv("CKAN_URL")
+    if not ckan_url:
+        raise Exception("CKAN_URL environment variable is required")
+
+    ckan_client = CKANAPIClient(
+        ckan_url,
+        os.getenv("CKAN_API_KEY"),
+        os.getenv("CKAN_BASIC_AUTH_USERNAME"),
+        os.getenv("CKAN_BASIC_AUTH_PASSWORD"),
+    )
+    await ckan_client.__aenter__()
+    return ckan_client
 
 # Initialize MCP server
 app = Server("ckan-mcp-server")
@@ -450,6 +471,12 @@ async def handle_call_tool(name: str, arguments: Optional[Dict[str, Any]]) -> Li
 
         elif name == "ckan_package_search":
             params = arguments or {}
+            if params.get("include_private", False) and not (
+                os.getenv("CKAN_BASIC_AUTH_USERNAME") and os.getenv("CKAN_BASIC_AUTH_PASSWORD")
+            ):
+                raise Exception(
+                    "Feature 'include_private' requires CKAN_BASIC_AUTH_USERNAME and CKAN_BASIC_AUTH_PASSWORD to be configured."
+                )
             result = await ckan_client.call_action("package_search", **params)
 
         elif name == "ckan_organization_list":
@@ -484,7 +511,7 @@ async def handle_call_tool(name: str, arguments: Optional[Dict[str, Any]]) -> Li
 
         elif name == "ckan_resource_download":
             resource_id = arguments["resource_id"]
-            output_folder = f"{arguments["output_folder"]}"
+            output_folder = str(arguments["output_folder"])
             output_format = arguments.get("output_format", "file")
 
             # Validate output_folder exists
@@ -681,108 +708,220 @@ Full documentation: https://docs.ckan.org/en/latest/api/
         config = {
             "base_url": ckan_client.base_url if ckan_client else "Not configured",
             "api_key_configured": bool(ckan_client and ckan_client.api_key),
+            "basic_auth_configured": bool(
+                os.getenv("CKAN_BASIC_AUTH_USERNAME") and os.getenv("CKAN_BASIC_AUTH_PASSWORD")
+            ),
+            "unavailable_features": []
+            if os.getenv("CKAN_BASIC_AUTH_USERNAME") and os.getenv("CKAN_BASIC_AUTH_PASSWORD")
+            else ["include_private"],
             "client_active": bool(ckan_client and ckan_client.client)
         }
         return json.dumps(config, indent=2)
     else:
         raise Exception(f"Unknown resource: {uri}")
-@click.command()
-@click.option("--host",default="127.0.0.1", help= "Hostname to listen on for SSE")
-@click.option("--port", default=8000, help="Port to listen on for SSE")
-@click.option(
-    "--transport",
-    type=click.Choice(["stdio", "sse"]),
-    default="stdio",
-    help="Transport type",
-)
-@click.option("--logpath",default="stderr",help="set path for Logfile")
-@click.option("--loglevel",default="INFO",type = click.Choice(logging.getLevelNamesMapping()),help="set Log Level")
-def main(host: str,port: int, transport: str,logpath:str,loglevel:str):
+def _extract_tool_result(result_content: list[types.TextContent]) -> Any:
+    if not result_content:
+        return {}
+    text = result_content[0].text
+    if text.startswith("Error: "):
+        raise Exception(text.removeprefix("Error: "))
+    return json.loads(text)
 
-    try:
-        anyio.run(start_server, host, port, transport, logpath, loglevel)
-    except (KeyboardInterrupt, SystemExit):
-        pass
-async def start_server(host: str,port: int, transport: str,logpath:str,loglevel:str):
-    """start_server function"""
-    import os
-    global logger
+
+fastmcp_app = FastMCP("ckan-mcp-server")
+
+
+def register_fastmcp_tools(mcp_app: FastMCP) -> None:
+    @mcp_app.tool(name="ckan_package_search", description="Search datasets by keywords, filters, and pagination.")
+    async def ckan_package_search(
+        q: str = "*:*",
+        fq: Optional[str] = None,
+        sort: str = "score desc",
+        rows: int = 10,
+        start: int = 0,
+        include_private: bool = False,
+    ) -> dict[str, Any]:
+        return _extract_tool_result(
+            await handle_call_tool(
+                "ckan_package_search",
+                {
+                    "q": q,
+                    "fq": fq,
+                    "sort": sort,
+                    "rows": rows,
+                    "start": start,
+                    "include_private": include_private,
+                },
+            )
+        )
+
+    @mcp_app.tool(name="ckan_package_list", description="List datasets with pagination.")
+    async def ckan_package_list(limit: int = 100, offset: int = 0) -> dict[str, Any]:
+        return _extract_tool_result(await handle_call_tool("ckan_package_list", {"limit": limit, "offset": offset}))
+
+    @mcp_app.tool(name="ckan_package_show", description="Get full metadata for a dataset.")
+    async def ckan_package_show(id: str) -> dict[str, Any]:
+        return _extract_tool_result(await handle_call_tool("ckan_package_show", {"id": id}))
+
+    @mcp_app.tool(name="ckan_datastore_search", description="Search rows in a DataStore resource.")
+    async def ckan_datastore_search(
+        resource_id: str,
+        q: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0,
+        sort: str = "id asc",
+        fields: Optional[list[str]] = None,
+    ) -> dict[str, Any]:
+        args: dict[str, Any] = {"resource_id": resource_id, "limit": limit, "offset": offset, "sort": sort}
+        if q:
+            args["q"] = q
+        if fields:
+            args["fields"] = fields
+        return _extract_tool_result(await handle_call_tool("ckan_datastore_search", args))
+
+    @mcp_app.tool(name="ckan_resource_show", description="Get metadata for a CKAN resource.")
+    async def ckan_resource_show(id: str) -> dict[str, Any]:
+        return _extract_tool_result(await handle_call_tool("ckan_resource_show", {"id": id}))
+
+    @mcp_app.tool(
+        name="ckan_resource_download",
+        description="Download resource metadata, JSON content, or file to disk.",
+    )
+    async def ckan_resource_download(
+        resource_id: str,
+        output_folder: str,
+        output_format: str = "file",
+    ) -> dict[str, Any]:
+        return _extract_tool_result(
+            await handle_call_tool(
+                "ckan_resource_download",
+                {
+                    "resource_id": resource_id,
+                    "output_folder": output_folder,
+                    "output_format": output_format,
+                },
+            )
+        )
+
+    @mcp_app.tool(name="ckan_organization_list", description="List CKAN organizations.")
+    async def ckan_organization_list(all_fields: bool = False) -> dict[str, Any]:
+        return _extract_tool_result(await handle_call_tool("ckan_organization_list", {"all_fields": all_fields}))
+
+    @mcp_app.tool(name="ckan_organization_show", description="Get organization details.")
+    async def ckan_organization_show(id: str, include_datasets: bool = False) -> dict[str, Any]:
+        return _extract_tool_result(
+            await handle_call_tool("ckan_organization_show", {"id": id, "include_datasets": include_datasets})
+        )
+
+    @mcp_app.tool(name="ckan_group_list", description="List CKAN groups.")
+    async def ckan_group_list(all_fields: bool = False) -> dict[str, Any]:
+        return _extract_tool_result(await handle_call_tool("ckan_group_list", {"all_fields": all_fields}))
+
+    @mcp_app.tool(name="ckan_tag_list", description="List CKAN tags.")
+    async def ckan_tag_list(vocabulary_id: Optional[str] = None) -> dict[str, Any]:
+        args: dict[str, Any] = {}
+        if vocabulary_id:
+            args["vocabulary_id"] = vocabulary_id
+        return _extract_tool_result(await handle_call_tool("ckan_tag_list", args))
+
+    @mcp_app.tool(name="ckan_site_read", description="Get CKAN site summary details.")
+    async def ckan_site_read() -> dict[str, Any]:
+        return _extract_tool_result(await handle_call_tool("ckan_site_read", {}))
+
+    @mcp_app.tool(name="ckan_status_show", description="Get CKAN system status.")
+    async def ckan_status_show() -> dict[str, Any]:
+        return _extract_tool_result(await handle_call_tool("ckan_status_show", {}))
+
+
+def register_fastmcp_resources(mcp_app: FastMCP) -> None:
+    @mcp_app.resource(
+        "ckan://api/docs",
+        name="CKAN API Documentation",
+        description="Official CKAN API documentation and endpoints",
+        mime_type="text/plain",
+    )
+    def ckan_api_docs() -> str:
+        return """
+CKAN API Documentation Summary
+
+Base URL: Configure via CKAN_URL environment variable
+API Version: 3
+        """
+
+    @mcp_app.resource(
+        "ckan://config",
+        name="CKAN Server Configuration",
+        description="Current CKAN server configuration and connection details",
+        mime_type="application/json",
+    )
+    def ckan_config() -> str:
+        auth_configured = bool(os.getenv("CKAN_BASIC_AUTH_USERNAME") and os.getenv("CKAN_BASIC_AUTH_PASSWORD"))
+        config = {
+            "base_url": _ckan_client.base_url if _ckan_client else os.getenv("CKAN_URL", "Not configured"),
+            "api_key_configured": bool((_ckan_client and _ckan_client.api_key) or os.getenv("CKAN_API_KEY")),
+            "basic_auth_configured": auth_configured,
+            "unavailable_features": [] if auth_configured else ["include_private"],
+            "client_active": bool(_ckan_client and _ckan_client.client),
+        }
+        return json.dumps(config, indent=2)
+
+
+register_fastmcp_tools(fastmcp_app)
+register_fastmcp_resources(fastmcp_app)
+
+
+async def run_server(host: str, port: int, transport: str, logpath: str, loglevel: str) -> None:
+    global logger, ckan_client
+
     if logpath == "stderr":
         logging.basicConfig(level=loglevel)
     else:
-        logging.basicConfig(level=loglevel,filename=logpath)
+        logging.basicConfig(level=loglevel, filename=logpath)
+
     logger = logging.getLogger("mcp-ckan-server")
-    # Initialize CKAN client
+
     ckan_url = os.getenv("CKAN_URL")
     if not ckan_url:
         logger.error("CKAN_URL environment variable not set")
         raise Exception("CKAN_URL environment variable is required")
 
-    ckan_api_key = os.getenv("CKAN_API_KEY")
-    ckan_basic_auth_username = os.getenv("CKAN_BASIC_AUTH_USERNAME")
-    ckan_basic_auth_password = os.getenv("CKAN_BASIC_AUTH_PASSWORD")
+    ckan_client = await get_ckan_client()
+    logger.info("CKAN MCP Server is up and running (%s transport). Connected to %s", transport, ckan_url)
 
-    global ckan_client
-    ckan_client = CKANAPIClient(ckan_url, ckan_api_key,ckan_basic_auth_username,ckan_basic_auth_password)
-    logger.info(
-        "CKAN MCP Server is up and running (%s transport). Connected to %s",
-        transport,
-        ckan_url,
-    )
-
-    # Start the CKAN client session
+    fastmcp_app.settings.host = host
+    fastmcp_app.settings.port = port
+    fastmcp_app.settings.log_level = loglevel
 
     try:
-        if transport == "sse":
-            from mcp.server.sse import SseServerTransport
-            from starlette.applications import Starlette
-            from starlette.responses import Response
-            from starlette.routing import Mount, Route
-
-            sse = SseServerTransport("/messages/")
-
-            async def handle_sse(request: Request):
-                async with sse.connect_sse(request.scope, request.receive, request._send) as streams:  # type: ignore[reportPrivateUsage]
-                    if not ckan_client.client:
-                            await ckan_client.__aenter__()
-                    await app.run(streams[0], streams[1],
-                        app.create_initialization_options()
-                        )
-
-
-                    return Response()
-
-            starlette_app = Starlette(
-                debug=True,
-                routes=[
-                    Route("/sse", endpoint=handle_sse, methods=["GET"]),
-                    Mount("/messages/", app=sse.handle_post_message),
-                ],
-            )
-
-            import uvicorn
-            config = uvicorn.Config(starlette_app,host=host,port=port)
-            server = uvicorn.Server(config)
-            await server.serve()
+        if transport == "stdio":
+            await fastmcp_app.run_stdio_async()
+        elif transport == "streamable-http":
+            await fastmcp_app.run_streamable_http_async()
         else:
-            from mcp.server.stdio import stdio_server
-
-            async def arun():
-                if not ckan_client.client:
-                    await ckan_client.__aenter__()
-                async with stdio_server() as streams:
-                    await app.run(streams[0], streams[1],                 InitializationOptions(
-                    server_name="ckan-mcp-server",
-                    server_version="1.0.0",
-                    capabilities=app.get_capabilities(
-                        notification_options=NotificationOptions(),
-                        experimental_capabilities={},
-                    ),
-                ),)
-            await arun()
+            raise Exception(f"Unsupported transport: {transport}")
     finally:
-        # Clean up CKAN client
-         ckan_client.__aexit__(None, None, None)
+        if ckan_client:
+            await ckan_client.__aexit__(None, None, None)
+            ckan_client = None
+
+
+@click.command()
+@click.option("--host", default="127.0.0.1", help="Hostname to listen on")
+@click.option("--port", default=8000, help="Port to listen on")
+@click.option(
+    "--transport",
+    type=click.Choice(["stdio", "streamable-http"]),
+    default="stdio",
+    help="Transport type",
+)
+@click.option("--logpath", default="stderr", help="Path for logfile")
+@click.option("--loglevel", default="INFO", type=click.Choice(list(logging.getLevelNamesMapping().keys())), help="Log level")
+def main(host: str, port: int, transport: str, logpath: str, loglevel: str) -> None:
+    try:
+        anyio.run(run_server, host, port, transport, logpath, loglevel)
+    except (KeyboardInterrupt, SystemExit):
+        pass
+
 
 if __name__ == "__main__":
     main()
