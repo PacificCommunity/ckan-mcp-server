@@ -756,7 +756,7 @@ def register_fastmcp_tools(mcp_app: FastMCP) -> None:
         )
 
     @mcp_app.tool(name="ckan_package_list", description="List datasets with pagination.")
-    async def ckan_package_list(limit: int = 100, offset: int = 0) -> dict[str, Any]:
+    async def ckan_package_list(limit: int = 100, offset: int = 0) -> list[Any]:
         return _extract_tool_result(await handle_call_tool("ckan_package_list", {"limit": limit, "offset": offset}))
 
     @mcp_app.tool(name="ckan_package_show", description="Get full metadata for a dataset.")
@@ -804,7 +804,7 @@ def register_fastmcp_tools(mcp_app: FastMCP) -> None:
         )
 
     @mcp_app.tool(name="ckan_organization_list", description="List CKAN organizations.")
-    async def ckan_organization_list(all_fields: bool = False) -> dict[str, Any]:
+    async def ckan_organization_list(all_fields: bool = False) -> list[Any]:
         return _extract_tool_result(await handle_call_tool("ckan_organization_list", {"all_fields": all_fields}))
 
     @mcp_app.tool(name="ckan_organization_show", description="Get organization details.")
@@ -814,11 +814,11 @@ def register_fastmcp_tools(mcp_app: FastMCP) -> None:
         )
 
     @mcp_app.tool(name="ckan_group_list", description="List CKAN groups.")
-    async def ckan_group_list(all_fields: bool = False) -> dict[str, Any]:
+    async def ckan_group_list(all_fields: bool = False) -> list[Any]:
         return _extract_tool_result(await handle_call_tool("ckan_group_list", {"all_fields": all_fields}))
 
     @mcp_app.tool(name="ckan_tag_list", description="List CKAN tags.")
-    async def ckan_tag_list(vocabulary_id: Optional[str] = None) -> dict[str, Any]:
+    async def ckan_tag_list(vocabulary_id: Optional[str] = None) -> list[Any]:
         args: dict[str, Any] = {}
         if vocabulary_id:
             args["vocabulary_id"] = vocabulary_id
